@@ -1,0 +1,23 @@
+idf_component_register(
+    SRCS 
+        "app_main.c"
+        "camera_init.c"
+        "camera_server.c"
+    INCLUDE_DIRS 
+        "."
+    REQUIRES 
+        esp_http_server
+        esp_wifi
+        esp_hosted
+        nvs_flash
+        esp_netif
+        esp_event
+        esp_timer
+        protocol_examples_common
+        esp_cam_sensor
+        esp_video
+        esp_driver_jpeg
+        mdns
+    PRIV_REQUIRES
+        esp_sccb_intf
+)
