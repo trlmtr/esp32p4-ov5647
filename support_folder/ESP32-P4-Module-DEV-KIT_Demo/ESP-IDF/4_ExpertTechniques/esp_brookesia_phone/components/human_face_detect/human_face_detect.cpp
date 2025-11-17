@@ -63,7 +63,9 @@ MNP::~MNP()
 
 std::list<dl::detect::result_t> &MNP::run(const dl::image::img_t &img, std::list<dl::detect::result_t> &candidates)
 {
+#if CONFIG_FACE_DET_LOG_LATENCY
     dl::tool::Latency latency[3] = {dl::tool::Latency(10), dl::tool::Latency(10), dl::tool::Latency(10)};
+#endif
     m_postprocessor->clear_result();
     for (auto &candidate : candidates) {
         int center_x = (candidate.box[0] + candidate.box[2]) >> 1;
@@ -75,29 +77,43 @@ std::list<dl::detect::result_t> &MNP::run(const dl::image::img_t &img, std::list
         candidate.box[3] = candidate.box[1] + side;
         candidate.limit_box(img.width, img.height);
 
+#if CONFIG_FACE_DET_LOG_LATENCY
         latency[0].start();
+#endif
         m_image_preprocessor->preprocess(img, candidate.box);
+#if CONFIG_FACE_DET_LOG_LATENCY
         latency[0].end();
+#endif
 
+#if CONFIG_FACE_DET_LOG_LATENCY
         latency[1].start();
+#endif
         m_model->run();
+#if CONFIG_FACE_DET_LOG_LATENCY
         latency[1].end();
+#endif
 
+#if CONFIG_FACE_DET_LOG_LATENCY
         latency[2].start();
+#endif
         m_postprocessor->set_resize_scale_x(m_image_preprocessor->get_resize_scale_x());
         m_postprocessor->set_resize_scale_y(m_image_preprocessor->get_resize_scale_y());
         m_postprocessor->set_top_left_x(m_image_preprocessor->get_top_left_x());
         m_postprocessor->set_top_left_y(m_image_preprocessor->get_top_left_y());
         m_postprocessor->postprocess();
+#if CONFIG_FACE_DET_LOG_LATENCY
         latency[2].end();
+#endif
     }
     m_postprocessor->nms();
     std::list<dl::detect::result_t> &result = m_postprocessor->get_result(img.width, img.height);
+#if CONFIG_FACE_DET_LOG_LATENCY
     if (candidates.size() > 0) {
         latency[0].print("detect", "preprocess");
         latency[1].print("detect", "forward");
         latency[2].print("detect", "postprocess");
     }
+#endif
     return result;
 }
 

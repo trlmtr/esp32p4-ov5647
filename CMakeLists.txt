@@ -8,7 +8,7 @@ set(EXTRA_COMPONENT_DIRS
     "${CMAKE_CURRENT_LIST_DIR}/support_folder/esp-video-components/esp_ipa"
     "${CMAKE_CURRENT_LIST_DIR}/support_folder/esp-video-components/esp_cam_sensor"
     "${CMAKE_CURRENT_LIST_DIR}/support_folder/esp-video-components/esp_video"
+    "${CMAKE_CURRENT_LIST_DIR}/support_folder/ESP32-P4-Module-DEV-KIT_Demo/ESP-IDF/4_ExpertTechniques/esp_brookesia_phone/components/human_face_detect"
 )
-
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(ov5647)

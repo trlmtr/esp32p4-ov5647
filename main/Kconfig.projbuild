@@ -92,4 +92,74 @@ menu "Camera Application Configuration"
         help
             GPIO pin for I2C SDA (data)
 
+    config APP_ENABLE_STREAMING
+        bool "Enable HTTP streaming server"
+        default n
+        help
+            Enable the existing MJPEG streaming web server. Disable this if you only want face detection with MQTT.
+
+    config APP_ENABLE_FACE_DETECTION
+        bool "Enable face detection pipeline"
+        default y
+        help
+            Run the neural-network-based face detection task and publish detections over MQTT.
+
+    if APP_ENABLE_FACE_DETECTION
+
+    config MQTT_BROKER_URI
+        string "MQTT broker URI"
+        default "mqtt://10.0.0.13:1883"
+        help
+            URI for the MQTT broker used to publish face detection events.
+
+    config MQTT_USERNAME
+        string "MQTT username"
+        default "mqtt_user"
+        help
+            Username for authenticating with the MQTT broker (leave empty for anonymous access).
+
+    config MQTT_PASSWORD
+        string "MQTT password"
+        default "kuzey2011"
+        help
+            Password for the MQTT broker account.
+
+    config MQTT_TOPIC_FACE_EVENTS
+        string "MQTT topic for face events"
+        default "/esp32p4/face/events"
+        help
+            Topic where face detection payloads will be published.
+
+    config FACE_DET_MIN_INTERVAL_MS
+        int "Minimum interval between detections (ms)"
+        default 250
+        help
+            Minimum delay between consecutive detections to limit CPU usage. Set to 0 to process every frame.
+
+    config FACE_DET_TASK_STACK_SIZE
+        int "Face detection task stack size"
+        default 8192
+        help
+            Stack size (in bytes) for the face detection task.
+
+    config FACE_DET_TASK_PRIORITY
+        int "Face detection task priority"
+        default 5
+        help
+            FreeRTOS priority for the face detection task.
+
+    config FACE_DET_BUFFER_COUNT
+        int "Face detection buffer count"
+        default 3
+        help
+            Number of V4L2 buffers to use for the detection pipeline. Increase this if detection is too slow.
+
+    config FACE_DET_LOG_LATENCY
+        bool "Log detailed detector latency"
+        default n
+        help
+            Enable verbose latency measurements printed by the face detection model.
+
+    endif
+
 endmenu

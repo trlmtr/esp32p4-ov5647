@@ -3,6 +3,7 @@ idf_component_register(
         "app_main.c"
         "camera_init.c"
         "camera_server.c"
+        "face_detect_task.cpp"
     INCLUDE_DIRS 
         "."
     REQUIRES 
@@ -13,11 +14,14 @@ idf_component_register(
         esp_netif
         esp_event
         esp_timer
+        mqtt
         protocol_examples_common
         esp_cam_sensor
         esp_video
         esp_driver_jpeg
         mdns
+        human_face_detect
     PRIV_REQUIRES
         esp_sccb_intf
+    
 )

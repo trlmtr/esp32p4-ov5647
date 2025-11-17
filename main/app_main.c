@@ -12,11 +12,13 @@
 #include "esp_event.h"
 #include "esp_log.h"
 #include "esp_netif.h"
+#include "mqtt_client.h"
 #include "nvs_flash.h"
 #include "mdns.h"
 #include "esp_hosted.h"
 #include "camera_init.h"
 #include "camera_server.h"
+#include "face_detect_task.h"
 
 static const char *TAG = "app_main";
 
@@ -31,6 +33,64 @@ static EventGroupHandle_t s_wifi_event_group;
 
 static int s_retry_num = 0;
 static bool s_hosted_ready = false;
+
+#if CONFIG_APP_ENABLE_FACE_DETECTION
+static esp_mqtt_client_handle_t s_mqtt_client = NULL;
+
+static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)
+{
+    esp_mqtt_event_handle_t event = event_data;
+    switch (event_id) {
+    case MQTT_EVENT_CONNECTED:
+        ESP_LOGI(TAG, "MQTT connected");
+        break;
+    case MQTT_EVENT_DISCONNECTED:
+        ESP_LOGW(TAG, "MQTT disconnected");
+        break;
+    case MQTT_EVENT_ERROR:
+        ESP_LOGE(TAG, "MQTT transport error");
+        break;
+    default:
+        break;
+    }
+}
+
+static esp_mqtt_client_handle_t start_mqtt_client(void)
+{
+    esp_mqtt_client_config_t mqtt_cfg = {
+        .broker.address.uri = CONFIG_MQTT_BROKER_URI,
+        .credentials = {
+            .username = CONFIG_MQTT_USERNAME,
+            .authentication = {
+                .password = CONFIG_MQTT_PASSWORD,
+            },
+        },
+    };
+
+    esp_mqtt_client_handle_t client = esp_mqtt_client_init(&mqtt_cfg);
+    if (!client) {
+        ESP_LOGE(TAG, "Failed to create MQTT client");
+        return NULL;
+    }
+
+    esp_err_t err = esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID, mqtt_event_handler, NULL);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to register MQTT events (%s)", esp_err_to_name(err));
+        esp_mqtt_client_destroy(client);
+        return NULL;
+    }
+
+    err = esp_mqtt_client_start(client);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to start MQTT client (%s)", esp_err_to_name(err));
+        esp_mqtt_client_destroy(client);
+        return NULL;
+    }
+
+    ESP_LOGI(TAG, "MQTT client started: %s", CONFIG_MQTT_BROKER_URI);
+    return client;
+}
+#endif
 
 // Camera configuration for ESP32-P4 with OV5647
 #define CAMERA_I2C_PORT     CONFIG_CAMERA_I2C_PORT
@@ -184,6 +244,13 @@ void app_main(void)
     // Initialize mDNS after WiFi connection
     initialize_mdns();
 
+#if CONFIG_APP_ENABLE_FACE_DETECTION
+    s_mqtt_client = start_mqtt_client();
+    if (!s_mqtt_client) {
+        ESP_LOGW(TAG, "MQTT client not started, detection results will not be published");
+    }
+#endif
+
     // Initialize camera
     ESP_LOGI(TAG, "Initializing camera...");
     camera_config_t cam_config = {
@@ -208,6 +275,16 @@ void app_main(void)
         return;
     }
 
+#if CONFIG_APP_ENABLE_FACE_DETECTION && CONFIG_APP_ENABLE_STREAMING
+    ESP_LOGW(TAG, "Streaming and face detection simultaneously are not supported. Skipping face detection.");
+#elif CONFIG_APP_ENABLE_FACE_DETECTION
+    ret = face_detect_start(camera_fd, s_mqtt_client);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to start face detection task (%s)", esp_err_to_name(ret));
+    }
+#endif
+
+#if CONFIG_APP_ENABLE_STREAMING
     // Start web server
     ESP_LOGI(TAG, "Starting camera web server...");
     ret = camera_server_start(camera_fd);
@@ -223,6 +300,9 @@ void app_main(void)
     ESP_LOGI(TAG, "  http://%s.local", CONFIG_MDNS_HOSTNAME);
     ESP_LOGI(TAG, "  or use the IP address shown above");
     ESP_LOGI(TAG, "===========================================");
+#else
+    ESP_LOGI(TAG, "HTTP streaming disabled (APP_ENABLE_STREAMING = n)");
+#endif
 
     // Keep the application running
     while (1) {
