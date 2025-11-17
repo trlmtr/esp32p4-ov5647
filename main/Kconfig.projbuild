@@ -92,6 +92,18 @@ menu "Camera Application Configuration"
         help
             GPIO pin for I2C SDA (data)
 
+    config CAMERA_FRAME_WIDTH
+        int "Desired sensor frame width (pixels)"
+        default 1920
+        help
+            Preferred horizontal resolution requested from the OV5647 sensor. Set 0 to auto-select.
+
+    config CAMERA_FRAME_HEIGHT
+        int "Desired sensor frame height (pixels)"
+        default 1080
+        help
+            Preferred vertical resolution requested from the OV5647 sensor. Set 0 to auto-select.
+
     config APP_ENABLE_STREAMING
         bool "Enable HTTP streaming server"
         default n
@@ -153,6 +165,18 @@ menu "Camera Application Configuration"
         default 3
         help
             Number of V4L2 buffers to use for the detection pipeline. Increase this if detection is too slow.
+
+    config FACE_DET_ISP_WIDTH
+        int "ISP output width (pixels)"
+        default 640
+        help
+            Width to request from the ISP when converting RAW to RGB/YUV. Set to 0 to keep sensor resolution.
+
+    config FACE_DET_ISP_HEIGHT
+        int "ISP output height (pixels)"
+        default 480
+        help
+            Height to request from the ISP when converting RAW to RGB/YUV. Set to 0 to keep sensor resolution.
 
     config FACE_DET_LOG_LATENCY
         bool "Log detailed detector latency"

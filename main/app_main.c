@@ -253,6 +253,9 @@ void app_main(void)
 
     // Initialize camera
     ESP_LOGI(TAG, "Initializing camera...");
+#if !CONFIG_FACE_DET_LOG_LATENCY
+    esp_log_level_set("latency", ESP_LOG_NONE);
+#endif
     camera_config_t cam_config = {
         .i2c_port = CAMERA_I2C_PORT,
         .scl_pin = CAMERA_SCL_PIN,

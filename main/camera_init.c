@@ -95,6 +95,10 @@ esp_cam_sensor_device_t *camera_init(const camera_config_t *config)
     ESP_LOGI(TAG, "Detected camera: %s", esp_cam_sensor_get_name(s_cam_dev));
 
     // Query supported formats
+    int desired_width = CONFIG_CAMERA_FRAME_WIDTH;
+    int desired_height = CONFIG_CAMERA_FRAME_HEIGHT;
+    ESP_LOGI(TAG, "Desired sensor resolution: %dx%d", desired_width, desired_height);
+
     esp_cam_sensor_format_array_t format_array = {0};
     ret = esp_cam_sensor_query_format(s_cam_dev, &format_array);
     if (ret != ESP_OK) {
@@ -102,28 +106,22 @@ esp_cam_sensor_device_t *camera_init(const camera_config_t *config)
         goto fail;
     }
 
-    // Select a suitable format (prefer RAW10 for ESP32-P4)
     const esp_cam_sensor_format_t *selected_format = NULL;
     for (int i = 0; i < format_array.count; i++) {
         const esp_cam_sensor_format_t *fmt = &format_array.format_array[i];
         ESP_LOGI(TAG, "Format[%d]: %s, %dx%d, %dfps", 
                  i, fmt->name, fmt->width, fmt->height, fmt->fps);
-        
-        // Prefer 1080p RAW10 if available
-        if (fmt->format == ESP_CAM_SENSOR_PIXFORMAT_RAW10 && 
-            fmt->width == 1920 && fmt->height == 1080) {
+
+        if (fmt->format != ESP_CAM_SENSOR_PIXFORMAT_RAW10) {
+            continue;
+        }
+
+        if (desired_width > 0 && desired_height > 0 && fmt->width == desired_width && fmt->height == desired_height) {
             selected_format = fmt;
             break;
         }
-        
-        // Fallback to 720p RAW10
-        if (!selected_format && fmt->format == ESP_CAM_SENSOR_PIXFORMAT_RAW10 &&
-            fmt->width == 1280 && fmt->height == 720) {
-            selected_format = fmt;
-        }
-        
-        // Last resort: any RAW10 format
-        if (!selected_format && fmt->format == ESP_CAM_SENSOR_PIXFORMAT_RAW10) {
+
+        if (!selected_format) {
             selected_format = fmt;
         }
     }

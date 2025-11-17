@@ -253,10 +253,23 @@ static esp_err_t configure_camera_device(int camera_fd)
         return ESP_FAIL;
     }
 
+    uint32_t desired_width = CONFIG_FACE_DET_ISP_WIDTH;
+    uint32_t desired_height = CONFIG_FACE_DET_ISP_HEIGHT;
+
+    if (desired_width > 0 && desired_height > 0) {
+        fmt.fmt.pix.width = desired_width;
+        fmt.fmt.pix.height = desired_height;
+        ESP_LOGI(TAG, "Requesting ISP output %ux%u", desired_width, desired_height);
+    }
+
     if (fmt.fmt.pix.pixelformat != V4L2_PIX_FMT_RGB565) {
         struct v4l2_format rgb_fmt = fmt;
         rgb_fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_RGB565;
         rgb_fmt.fmt.pix.field = V4L2_FIELD_NONE;
+        if (desired_width > 0 && desired_height > 0) {
+            rgb_fmt.fmt.pix.width = desired_width;
+            rgb_fmt.fmt.pix.height = desired_height;
+        }
 
         if (ioctl(camera_fd, VIDIOC_S_FMT, &rgb_fmt) == 0) {
             fmt = rgb_fmt;
@@ -265,6 +278,10 @@ static esp_err_t configure_camera_device(int camera_fd)
             struct v4l2_format yuv_fmt = fmt;
             yuv_fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUV422P;
             yuv_fmt.fmt.pix.field = V4L2_FIELD_NONE;
+            if (desired_width > 0 && desired_height > 0) {
+                yuv_fmt.fmt.pix.width = desired_width;
+                yuv_fmt.fmt.pix.height = desired_height;
+            }
             if (ioctl(camera_fd, VIDIOC_S_FMT, &yuv_fmt) == 0) {
                 fmt = yuv_fmt;
                 ESP_LOGI(TAG, "Switched camera stream to YUV422");
